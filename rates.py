@@ -20,6 +20,10 @@ RATES_CENTS = {
     },
 }
 
+# Flat rate lookups for /profile display (tasker rates only, in cents)
+POST_RATE_CENTS = {1: 150, 2: 350, 3: 700}
+COMMENT_RATE_CENTS = {1: 50, 2: 150, 3: 300}
+
 LIMITS = {
     "post": {"minutes_to_complete": 90, "cooldown_minutes": 150, "daily_max": 3},
     "comment": {"minutes_to_complete": 120, "cooldown_minutes": 30, "daily_max": 10},
