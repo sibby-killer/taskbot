@@ -74,6 +74,16 @@ CREATE TABLE IF NOT EXISTS withdrawals (
     paid_at TEXT,
     proof_url TEXT
 );
+
+CREATE TABLE IF NOT EXISTS referrals (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    referrer_discord_id TEXT NOT NULL,
+    referred_discord_id TEXT NOT NULL UNIQUE,
+    qualified INTEGER DEFAULT 0,
+    rewarded INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now')),
+    qualified_at TEXT
+);
 """
 
 _client: Optional[libsql_client.Client] = None
@@ -255,3 +265,113 @@ async def add_pool_task(task_type: str, title: str, body: str, destination_url: 
         [task_type, title, body, destination_url, min_tier],
     )
     return rs.last_insert_rowid
+
+
+# --- Referrals -----------------------------------------------------------------
+
+REFERRAL_REWARD_CENTS = 100  # $1 per qualified referral
+
+
+@dataclass
+class Referral:
+    id: int
+    referrer_discord_id: str
+    referred_discord_id: str
+    qualified: bool
+    rewarded: bool
+    created_at: str
+    qualified_at: Optional[str]
+
+
+async def create_referral(referrer_discord_id: str, referred_discord_id: str) -> bool:
+    if referrer_discord_id == referred_discord_id:
+        return False
+    client = get_client()
+    try:
+        await client.execute(
+            "INSERT INTO referrals (referrer_discord_id, referred_discord_id) VALUES (?, ?)",
+            [referrer_discord_id, referred_discord_id],
+        )
+        return True
+    except Exception:
+        return False
+
+
+async def get_referral_by_referred(referred_discord_id: str) -> Optional[Referral]:
+    client = get_client()
+    rs = await client.execute("SELECT * FROM referrals WHERE referred_discord_id = ?", [referred_discord_id])
+    if not rs.rows:
+        return None
+    d = rs.rows[0].asdict()
+    return Referral(
+        id=d["id"],
+        referrer_discord_id=d["referrer_discord_id"],
+        referred_discord_id=d["referred_discord_id"],
+        qualified=bool(d["qualified"]),
+        rewarded=bool(d["rewarded"]),
+        created_at=d["created_at"],
+        qualified_at=d.get("qualified_at"),
+    )
+
+
+async def qualify_referral(referred_discord_id: str) -> Optional[Referral]:
+    """Mark a referral as qualified (1 post + 1 comment done). Returns the referral if newly qualified."""
+    client = get_client()
+    rs = await client.execute("SELECT * FROM referrals WHERE referred_discord_id = ? AND qualified = 0", [referred_discord_id])
+    if not rs.rows:
+        return None
+    d = rs.rows[0].asdict()
+    await client.execute(
+        "UPDATE referrals SET qualified = 1, qualified_at = datetime('now') WHERE id = ?",
+        [d["id"]],
+    )
+    return Referral(
+        id=d["id"],
+        referrer_discord_id=d["referrer_discord_id"],
+        referred_discord_id=d["referred_discord_id"],
+        qualified=True,
+        rewarded=False,
+        created_at=d["created_at"],
+        qualified_at=datetime.now(timezone.utc).isoformat(),
+    )
+
+
+async def reward_referral(referred_discord_id: str) -> bool:
+    """Credit $1 to referrer's balance. Returns True if rewarded."""
+    client = get_client()
+    referral = await get_referral_by_referred(referred_discord_id)
+    if not referral or referral.qualified or referral.rewarded:
+        return False
+    await add_balance(referral.referrer_discord_id, REFERRAL_REWARD_CENTS)
+    await client.execute("UPDATE referrals SET rewarded = 1 WHERE id = ?", [referral.id])
+    return True
+
+
+async def get_pending_withdrawals():
+    client = get_client()
+    rs = await client.execute("SELECT * FROM withdrawals WHERE status = 'pending' ORDER BY requested_at")
+    return [row.asdict() for row in rs.rows]
+
+
+async def create_withdrawal(discord_id: str, amount_cents: int, payment_method: str, payment_details: str) -> int:
+    client = get_client()
+    rs = await client.execute(
+        "INSERT INTO withdrawals (discord_id, amount_cents, payment_method, payment_details) VALUES (?, ?, ?, ?)",
+        [discord_id, amount_cents, payment_method, payment_details],
+    )
+    await deduct_balance(discord_id, amount_cents)
+    return rs.last_insert_rowid
+
+
+async def get_user_withdrawals(discord_id: str):
+    client = get_client()
+    rs = await client.execute("SELECT * FROM withdrawals WHERE discord_id = ? ORDER BY requested_at DESC", [discord_id])
+    return [row.asdict() for row in rs.rows]
+
+
+async def mark_withdrawal_paid(withdrawal_id: int, proof_url: str):
+    client = get_client()
+    await client.execute(
+        "UPDATE withdrawals SET status = 'paid', paid_at = datetime('now'), proof_url = ? WHERE id = ?",
+        [proof_url, withdrawal_id],
+    )

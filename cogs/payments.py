@@ -56,6 +56,48 @@ class Payments(commands.Cog):
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
+    @app_commands.command(name="withdraw-status", description="Check your withdrawal history and status.")
+    async def withdraw_status(self, interaction: discord.Interaction):
+        user = await db.get_user(str(interaction.user.id))
+        if not user:
+            await interaction.response.send_message("You haven't verified yet.", ephemeral=True)
+            return
+
+        withdrawals = await db.get_user_withdrawals(str(interaction.user.id))
+
+        embed = discord.Embed(title=f"Withdrawal Status — u/{user.reddit_username}", color=discord.Color.green())
+        embed.add_field(name="Current Balance", value=f"${user.balance_cents / 100:.2f}", inline=True)
+        embed.add_field(name="Minimum Withdrawal", value="$12.00", inline=True)
+
+        if user.balance_cents < 1200:
+            needed = 1200 - user.balance_cents
+            embed.add_field(
+                name="Status",
+                value=f"You need **${needed / 100:.2f}** more to request a withdrawal.",
+                inline=False,
+            )
+        else:
+            embed.add_field(
+                name="Status",
+                value="You can request a withdrawal! Use `/withdraw` when available.",
+                inline=False,
+            )
+
+        if withdrawals:
+            lines = []
+            for w in withdrawals[:5]:
+                status_emoji = "Pending" if w["status"] == "pending" else "Paid"
+                lines.append(f"**${w['amount_cents'] / 100:.2f}** — {status_emoji} — {w['requested_at'][:10]}")
+            embed.add_field(
+                name="Recent Withdrawals",
+                value="\n".join(lines),
+                inline=False,
+            )
+        else:
+            embed.add_field(name="Recent Withdrawals", value="No withdrawals yet.", inline=False)
+
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Payments(bot))
