@@ -78,6 +78,18 @@ class Moderation(commands.Cog):
                 )
             return
 
+        # --- Payment-proof: images only for non-admins ---
+        if message.channel.name == "payment-proof" and not message.author.bot:
+            admin_role = discord.utils.get(message.guild.roles, name="Admin")
+            if admin_role not in message.author.roles:
+                if not message.attachments:
+                    try:
+                        await message.delete()
+                        await message.author.send("Payment proof must include an image. Text-only messages aren't allowed in #payment-proof.")
+                    except discord.Forbidden:
+                        pass
+                    return
+
         # --- Keyword/link auto-block for everyone else ---
         if message.author.bot:
             return
