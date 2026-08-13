@@ -247,19 +247,47 @@ class AdminPanelCog(commands.Cog):
 
     # ── Daily Reminders ──────────────────────────────────────────
 
+    DAILY_MESSAGES = [
+        # Morning messages
+        [
+            '☀️ **Good morning Taskers!**\n\nNew day, new tasks! Start earning now:\n• `/request-post` — $1.00\n• `/request-comment` — $0.50\n\nFirst come, first served!',
+            '🌅 **Rise and grind!**\n\nTasks are live! Grab yours before they\'re gone:\n• `/request-post` — $1.00\n• `/request-comment` — $0.50\n\nDon\'t miss out!',
+            '☕ **Morning check-in!**\n\nReady to earn? Tasks available now:\n• `/request-post` — $1.00\n• `/request-comment` — $0.50\n\nLet\'s go!',
+        ],
+        # Afternoon messages
+        [
+            '🌤️ **Afternoon update!**\n\nStill earning? More tasks dropped:\n• `/request-post` — $1.00\n• `/request-comment` — $0.50\n\nGrab yours!',
+            '⚡ **Midday push!**\n\nTasks are flowing! Don\'t miss out:\n• `/request-post` — $1.00\n• `/request-comment` — $0.50\n\nLet\'s get it!',
+            '🎯 **Afternoon reminder!**\n\nSpots filling up fast:\n• `/request-post` — $1.00\n• `/request-comment` — $0.50\n\nAct now!',
+        ],
+        # Evening messages
+        [
+            '🌙 **Evening session!**\n\nNight owls, tasks are live:\n• `/request-post` — $1.00\n• `/request-comment` — $0.50\n\nEarn before bed!',
+            '🔥 **Last call!**\n\nFinal tasks of the day:\n• `/request-post` — $1.00\n• `/request-comment` — $0.50\n\nDon\'t sleep on this!',
+            '✨ **Evening grind!**\n\nStill opportunities available:\n• `/request-post` — $1.00\n• `/request-comment` — $0.50\n\nEnd the day strong!',
+        ],
+    ]
+
     @tasks.loop(hours=8)
     async def daily_reminder(self):
         try:
+            import random
+            from datetime import datetime
+            hour = datetime.now().hour
+            
+            if 5 <= hour < 12:
+                messages = self.DAILY_MESSAGES[0]
+            elif 12 <= hour < 17:
+                messages = self.DAILY_MESSAGES[1]
+            else:
+                messages = self.DAILY_MESSAGES[2]
+
+            message = random.choice(messages)
+
             channel = self.bot.get_channel(int(ANNOUNCEMENTS_CHANNEL))
             if channel:
                 await channel.send(
-                    f'<@&{EVERYONE_ROLE}>\n\n'
-                    f'📢 **Daily Task Reminder!**\n\n'
-                    f'New tasks are available! Request yours now:\n'
-                    f'• Use `/request-post` for post tasks ($1.00)\n'
-                    f'• Use `/request-comment` for comment tasks ($0.50)\n\n'
-                    f'⚠️ Limited spots available - first come, first served!\n'
-                    f'Minimum withdrawal: $12'
+                    f'<@&{EVERYONE_ROLE}>\n\n{message}'
                 )
         except Exception as e:
             print(f'Daily reminder error: {e}')
