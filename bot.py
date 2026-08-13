@@ -37,10 +37,12 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 EXTENSIONS = [
     "cogs.onboarding",
-    "cogs.tasks",
+    "cogs.verification",
+    "cogs.tasks_new",
     "cogs.payments",
     "cogs.moderation",
     "cogs.admin",
+    "cogs.accounts",
 ]
 
 

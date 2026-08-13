@@ -84,6 +84,46 @@ CREATE TABLE IF NOT EXISTS referrals (
     created_at TEXT DEFAULT (datetime('now')),
     qualified_at TEXT
 );
+
+CREATE TABLE IF NOT EXISTS verification_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    discord_id TEXT NOT NULL,
+    reddit_username TEXT NOT NULL,
+    screenshot_url TEXT,
+    profile_link TEXT,
+    status TEXT DEFAULT 'pending',
+    admin_note TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    reviewed_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS task_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    discord_id TEXT NOT NULL,
+    task_type TEXT NOT NULL,
+    title TEXT,
+    description TEXT,
+    status TEXT DEFAULT 'pending',
+    assigned_at TEXT,
+    deadline_at TEXT,
+    submitted_link TEXT,
+    submitted_at TEXT,
+    admin_note TEXT,
+    pay_cents INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now')),
+    reviewed_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS account_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    discord_id TEXT NOT NULL,
+    account_type TEXT,
+    details TEXT,
+    status TEXT DEFAULT 'pending',
+    admin_note TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    reviewed_at TEXT
+);
 """
 
 _client: Optional[libsql_client.Client] = None
@@ -374,4 +414,163 @@ async def mark_withdrawal_paid(withdrawal_id: int, proof_url: str):
     await client.execute(
         "UPDATE withdrawals SET status = 'paid', paid_at = datetime('now'), proof_url = ? WHERE id = ?",
         [proof_url, withdrawal_id],
+    )
+
+
+# ── Verification Requests ──────────────────────────────────────
+
+async def create_verification_request(discord_id: str, reddit_username: str, screenshot_url: str, profile_link: str) -> int:
+    client = get_client()
+    rs = await client.execute(
+        "INSERT INTO verification_requests (discord_id, reddit_username, screenshot_url, profile_link) VALUES (?, ?, ?, ?)",
+        [discord_id, reddit_username, screenshot_url, profile_link],
+    )
+    return rs.last_insert_rowid
+
+
+async def get_pending_verifications():
+    client = get_client()
+    rs = await client.execute("SELECT * FROM verification_requests WHERE status = 'pending' ORDER BY created_at")
+    return [row.asdict() for row in rs.rows]
+
+
+async def approve_verification(request_id: int, admin_note: str = ''):
+    client = get_client()
+    await client.execute(
+        "UPDATE verification_requests SET status = 'approved', admin_note = ?, reviewed_at = datetime('now') WHERE id = ?",
+        [admin_note, request_id],
+    )
+
+
+async def reject_verification(request_id: int, admin_note: str = ''):
+    client = get_client()
+    await client.execute(
+        "UPDATE verification_requests SET status = 'rejected', admin_note = ?, reviewed_at = datetime('now') WHERE id = ?",
+        [admin_note, request_id],
+    )
+
+
+async def get_verification_by_user(discord_id: str):
+    client = get_client()
+    rs = await client.execute("SELECT * FROM verification_requests WHERE discord_id = ? ORDER BY created_at DESC LIMIT 1", [discord_id])
+    if rs.rows:
+        return rs.rows[0].asdict()
+    return None
+
+
+# ── Task Requests ──────────────────────────────────────────────
+
+async def create_task_request(discord_id: str, task_type: str, title: str, description: str) -> int:
+    client = get_client()
+    rs = await client.execute(
+        "INSERT INTO task_requests (discord_id, task_type, title, description) VALUES (?, ?, ?, ?)",
+        [discord_id, task_type, title, description],
+    )
+    return rs.last_insert_rowid
+
+
+async def get_pending_task_requests():
+    client = get_client()
+    rs = await client.execute("SELECT * FROM task_requests WHERE status = 'pending' ORDER BY created_at")
+    return [row.asdict() for row in rs.rows]
+
+
+async def assign_task(request_id: int, pay_cents: int):
+    client = get_client()
+    await client.execute(
+        "UPDATE task_requests SET status = 'assigned', pay_cents = ?, assigned_at = datetime('now') WHERE id = ?",
+        [pay_cents, request_id],
+    )
+
+
+async def submit_task(request_id: int, submitted_link: str):
+    client = get_client()
+    await client.execute(
+        "UPDATE task_requests SET status = 'submitted', submitted_link = ?, submitted_at = datetime('now') WHERE id = ?",
+        [submitted_link, request_id],
+    )
+
+
+async def approve_task(request_id: int):
+    client = get_client()
+    await client.execute(
+        "UPDATE task_requests SET status = 'approved', reviewed_at = datetime('now') WHERE id = ?",
+        [request_id],
+    )
+
+
+async def reject_task(request_id: int, admin_note: str = ''):
+    client = get_client()
+    await client.execute(
+        "UPDATE task_requests SET status = 'rejected', admin_note = ?, reviewed_at = datetime('now') WHERE id = ?",
+        [admin_note, request_id],
+    )
+
+
+async def get_task_by_id(request_id: int):
+    client = get_client()
+    rs = await client.execute("SELECT * FROM task_requests WHERE id = ?", [request_id])
+    if rs.rows:
+        return rs.rows[0].asdict()
+    return None
+
+
+async def get_user_tasks(discord_id: str):
+    client = get_client()
+    rs = await client.execute("SELECT * FROM task_requests WHERE discord_id = ? ORDER BY created_at DESC", [discord_id])
+    return [row.asdict() for row in rs.rows]
+
+
+async def count_failed_tasks(discord_id: str) -> int:
+    client = get_client()
+    rs = await client.execute("SELECT COUNT(*) as cnt FROM task_requests WHERE discord_id = ? AND status = 'rejected'", [discord_id])
+    if rs.rows:
+        return rs.rows[0]['cnt']
+    return 0
+
+
+async def get_last_task_time(discord_id: str, task_type: str) -> float:
+    """Returns timestamp of last task of given type, or None."""
+    client = get_client()
+    rs = await client.execute(
+        "SELECT created_at FROM task_requests WHERE discord_id = ? AND task_type = ? ORDER BY created_at DESC LIMIT 1",
+        [discord_id, task_type]
+    )
+    if rs.rows:
+        from datetime import datetime
+        dt = datetime.fromisoformat(rs.rows[0]['created_at'])
+        return dt.timestamp()
+    return None
+
+
+# ── Account Requests ───────────────────────────────────────────
+
+async def create_account_request(discord_id: str, account_type: str, details: str) -> int:
+    client = get_client()
+    rs = await client.execute(
+        "INSERT INTO account_requests (discord_id, account_type, details) VALUES (?, ?, ?)",
+        [discord_id, account_type, details],
+    )
+    return rs.last_insert_rowid
+
+
+async def get_pending_account_requests():
+    client = get_client()
+    rs = await client.execute("SELECT * FROM account_requests WHERE status = 'pending' ORDER BY created_at")
+    return [row.asdict() for row in rs.rows]
+
+
+async def approve_account_request(request_id: int, admin_note: str = ''):
+    client = get_client()
+    await client.execute(
+        "UPDATE account_requests SET status = 'approved', admin_note = ?, reviewed_at = datetime('now') WHERE id = ?",
+        [admin_note, request_id],
+    )
+
+
+async def reject_account_request(request_id: int, admin_note: str = ''):
+    client = get_client()
+    await client.execute(
+        "UPDATE account_requests SET status = 'rejected', admin_note = ?, reviewed_at = datetime('now') WHERE id = ?",
+        [admin_note, request_id],
     )
