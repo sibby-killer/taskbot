@@ -5,10 +5,10 @@ import asyncio
 import db
 from rates import POST_RATE_CENTS, COMMENT_RATE_CENTS, MIN_WITHDRAWAL_CENTS, RATES_CENTS
 
-ADMIN_ROLE_ID = '1533788208037498942'
-ANNOUNCEMENTS_CHANNEL = '1533811503596306545'
-BOT_LOGS_CHANNEL = '1533811521190891660'
-EVERYONE_ROLE = '1533310208695079093'
+ADMIN_ROLE_ID = 1533788208037498942
+ANNOUNCEMENTS_CHANNEL = 1533811503596306545
+BOT_LOGS_CHANNEL = 1533811521190891660
+EVERYONE_ROLE = 1533310208695079093
 
 
 class AdminPanelCog(commands.Cog):
@@ -284,11 +284,11 @@ class AdminPanelCog(commands.Cog):
 
             message = random.choice(messages)
 
-            channel = self.bot.get_channel(int(ANNOUNCEMENTS_CHANNEL))
-            if channel:
-                await channel.send(
-                    f'<@&{EVERYONE_ROLE}>\n\n{message}'
-                )
+                channel = self.bot.get_channel(ANNOUNCEMENTS_CHANNEL)
+                if channel:
+                    await channel.send(
+                        f'<@&{EVERYONE_ROLE}>\n\n{message}'
+                    )
         except Exception as e:
             print(f'Daily reminder error: {e}')
 

@@ -2,8 +2,8 @@ import discord
 from discord.ext import commands
 import db
 
-ADMIN_ROLE_ID = '1533788208037498942'
-ADMIN_USER_ID = '829433351731240991'  # alfasibby69
+ADMIN_ROLE_ID = 1533788208037498942
+ADMIN_USER_ID = 829433351731240991  # alfasibby69
 
 HELP_RESPONSES = {
     'verify': 'To verify your Reddit account, go to <#1537510572491415592> and use the `/verify` command with your Reddit username, a screenshot, and your profile link.',

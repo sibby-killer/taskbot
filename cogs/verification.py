@@ -3,10 +3,10 @@ from discord.ext import commands
 from discord import app_commands
 import db
 
-VERIFY_CHANNEL_ID = '1537510572491415592'
-ADMIN_ROLE_ID = '1533788208037498942'
-TASKER_ROLE_ID = '1533788214849175613'
-ENGLISH_CHAT_ID = '1533810521059491842'
+VERIFY_CHANNEL_ID = 1537510572491415592
+ADMIN_ROLE_ID = 1533788208037498942
+TASKER_ROLE_ID = 1533788214849175613
+ENGLISH_CHAT_ID = 1533810521059491842
 
 
 class VerificationCog(commands.Cog):
@@ -88,7 +88,7 @@ class VerificationReviewView(discord.ui.View):
 
         member = interaction.guild.get_member(int(self.user_id))
         if member:
-            tasker_role = interaction.guild.get_role(int(TASKER_ROLE_ID))
+            tasker_role = interaction.guild.get_role(TASKER_ROLE_ID)
             if tasker_role:
                 await member.add_roles(tasker_role)
 

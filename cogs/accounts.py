@@ -3,8 +3,8 @@ from discord.ext import commands
 from discord import app_commands
 import db
 
-PURCHASE_ACCOUNTS_CHANNEL_ID = '1537510587964071967'
-ADMIN_ROLE_ID = '1533788208037498942'
+PURCHASE_ACCOUNTS_CHANNEL_ID = 1537510587964071967
+ADMIN_ROLE_ID = 1533788208037498942
 
 
 class AccountRequestCog(commands.Cog):
