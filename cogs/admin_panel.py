@@ -284,11 +284,11 @@ class AdminPanelCog(commands.Cog):
 
             message = random.choice(messages)
 
-                channel = self.bot.get_channel(ANNOUNCEMENTS_CHANNEL)
-                if channel:
-                    await channel.send(
-                        f'<@&{EVERYONE_ROLE}>\n\n{message}'
-                    )
+            channel = self.bot.get_channel(ANNOUNCEMENTS_CHANNEL)
+            if channel:
+                await channel.send(
+                    f'<@&{EVERYONE_ROLE}>\n\n{message}'
+                )
         except Exception as e:
             print(f'Daily reminder error: {e}')
 
