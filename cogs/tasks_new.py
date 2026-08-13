@@ -211,21 +211,22 @@ class TasksCog(commands.Cog):
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @app_commands.command(name='submit-task', description='Submit your completed task')
-    @app_commands.describe(request_id='Task ID from /my-tasks', link='Link to your Reddit post/comment')
-    async def submit_task(self, interaction: discord.Interaction, request_id: int, link: str):
-        task = await db.get_task_by_id(request_id)
-        if not task:
-            await interaction.response.send_message('Task not found.', ephemeral=True)
+    @app_commands.command(name='submit-task', description='Submit your completed task (just paste the Reddit link)')
+    @app_commands.describe(link='Link to your Reddit post/comment')
+    async def submit_task(self, interaction: discord.Interaction, link: str):
+        # Find user's assigned task automatically
+        user_tasks = await db.get_user_tasks(str(interaction.user.id))
+        assigned = [t for t in user_tasks if t['status'] == 'assigned']
+        
+        if not assigned:
+            await interaction.response.send_message(
+                'You have no assigned tasks to submit. Request a task first!',
+                ephemeral=True
+            )
             return
-
-        if task['discord_id'] != str(interaction.user.id):
-            await interaction.response.send_message('This is not your task.', ephemeral=True)
-            return
-
-        if task['status'] != 'assigned':
-            await interaction.response.send_message('This task cannot be submitted.', ephemeral=True)
-            return
+        
+        task = assigned[0]
+        request_id = task['id']
 
         await db.submit_task(request_id, link)
 
@@ -241,7 +242,7 @@ class TasksCog(commands.Cog):
 
         # Notify admin
         try:
-            logs_channel = interaction.guild.get_channel(int(BOT_LOGS_CHANNEL))
+            logs_channel = interaction.guild.get_channel(BOT_LOGS_CHANNEL)
             if logs_channel:
                 await logs_channel.send(
                     f'📤 **Task #{request_id}** submitted by {interaction.user.mention}\n'
