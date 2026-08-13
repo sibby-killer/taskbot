@@ -17,7 +17,7 @@ class AccountRequestCog(commands.Cog):
         details='What you need (age, karma, niche)'
     )
     async def request_account(self, interaction: discord.Interaction, account_type: str, details: str):
-        if str(interaction.channel_id) != PURCHASE_ACCOUNTS_CHANNEL_ID:
+        if interaction.channel_id != PURCHASE_ACCOUNTS_CHANNEL_ID:
             await interaction.response.send_message(
                 f'Use <#{PURCHASE_ACCOUNTS_CHANNEL_ID}> for account requests.',
                 ephemeral=True

@@ -20,7 +20,7 @@ class VerificationCog(commands.Cog):
         profile_link='Link to your Reddit profile'
     )
     async def verify(self, interaction: discord.Interaction, reddit_username: str, screenshot: discord.Attachment, profile_link: str):
-        if str(interaction.channel_id) != VERIFY_CHANNEL_ID:
+        if interaction.channel_id != VERIFY_CHANNEL_ID:
             await interaction.response.send_message(
                 f'Use <#{VERIFY_CHANNEL_ID}> for verification.',
                 ephemeral=True

@@ -24,7 +24,7 @@ class TasksCog(commands.Cog):
     @app_commands.command(name='request-post', description='Request a Reddit post task')
     @app_commands.describe(title='Post title idea', description='What the post should be about')
     async def request_post(self, interaction: discord.Interaction, title: str, description: str):
-        if str(interaction.channel_id) != TASKS_CHANNEL_ID:
+        if interaction.channel_id != TASKS_CHANNEL_ID:
             await interaction.response.send_message(
                 f'Use <#{TASKS_CHANNEL_ID}> for task requests.',
                 ephemeral=True
@@ -98,7 +98,7 @@ class TasksCog(commands.Cog):
     @app_commands.command(name='request-comment', description='Request a Reddit comment task')
     @app_commands.describe(title='Comment topic', description='What the comment should say')
     async def request_comment(self, interaction: discord.Interaction, title: str, description: str):
-        if str(interaction.channel_id) != TASKS_CHANNEL_ID:
+        if interaction.channel_id != TASKS_CHANNEL_ID:
             await interaction.response.send_message(
                 f'Use <#{TASKS_CHANNEL_ID}> for task requests.',
                 ephemeral=True
