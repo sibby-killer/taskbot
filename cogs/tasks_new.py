@@ -4,11 +4,13 @@ from discord import app_commands
 import asyncio
 import time
 import db
-from rates import POST_RATE_CENTS, COMMENT_RATE_CENTS
+from rates import POST_RATE_CENTS, COMMENT_RATE_CENTS, MIN_WITHDRAWAL_CENTS
 
 TASKS_CHANNEL_ID = '1537510579575459840'
 ADMIN_ROLE_ID = '1533788208037498942'
 BOT_LOGS_CHANNEL = '1533811521190891660'
+ANNOUNCEMENTS_CHANNEL = '1533811503596306545'
+EVERYONE_ROLE = '1533310208695079093'
 
 POST_COOLDOWN = 2 * 3600  # 2 hours
 COMMENT_COOLDOWN = 30 * 60  # 30 minutes
@@ -84,7 +86,7 @@ class TasksCog(commands.Cog):
         embed.add_field(name='Title Idea', value=title, inline=False)
         embed.add_field(name='Description', value=description, inline=False)
         embed.add_field(name='Request ID', value=f'#{request_id}', inline=True)
-        embed.add_field(name='Earnings', value=f'${POST_RATE_CENTS/100:.2f} (Tier {user_data.tier})', inline=True)
+        embed.add_field(name='Earnings', value=f'${POST_RATE_CENTS[user_data.tier]/100:.2f}', inline=True)
         embed.set_footer(text='⚠️ 30min countdown starts when admin assigns task | 5min after receiving link | 2min warning before expiry')
 
         await interaction.response.send_message(
@@ -157,7 +159,7 @@ class TasksCog(commands.Cog):
         embed.add_field(name='Topic', value=title, inline=False)
         embed.add_field(name='Description', value=description, inline=False)
         embed.add_field(name='Request ID', value=f'#{request_id}', inline=True)
-        embed.add_field(name='Earnings', value=f'${COMMENT_RATE_CENTS/100:.2f} (Tier {user_data.tier})', inline=True)
+        embed.add_field(name='Earnings', value=f'${COMMENT_RATE_CENTS[user_data.tier]/100:.2f}', inline=True)
         embed.set_footer(text='⚠️ 30min countdown starts when admin assigns task | 5min after receiving link | 2min warning before expiry')
 
         await interaction.response.send_message(

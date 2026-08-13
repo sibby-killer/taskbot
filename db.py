@@ -434,6 +434,12 @@ async def get_pending_verifications():
     return [row.asdict() for row in rs.rows]
 
 
+async def get_all_users():
+    client = get_client()
+    rs = await client.execute("SELECT * FROM users ORDER BY created_at DESC")
+    return [row.asdict() for row in rs.rows]
+
+
 async def approve_verification(request_id: int, admin_note: str = ''):
     client = get_client()
     await client.execute(

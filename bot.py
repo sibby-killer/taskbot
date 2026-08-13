@@ -43,6 +43,8 @@ EXTENSIONS = [
     "cogs.moderation",
     "cogs.admin",
     "cogs.accounts",
+    "cogs.admin_panel",
+    "cogs.agentic",
 ]
 
 
