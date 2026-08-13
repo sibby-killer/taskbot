@@ -59,16 +59,22 @@ async def on_ready():
     # here with the same custom_ids used when they were first sent.
     bot.add_view(RefreshTierButton())
 
-    guild = discord.Object(id=GUILD_ID)
-    bot.tree.copy_global_to(guild=guild)
-    synced = await bot.tree.sync(guild=guild)
-    log.info(f"Synced {len(synced)} slash commands to guild {GUILD_ID}.")
+    try:
+        guild = discord.Object(id=GUILD_ID)
+        bot.tree.copy_global_to(guild=guild)
+        synced = await bot.tree.sync(guild=guild)
+        log.info(f"Synced {len(synced)} slash commands to guild {GUILD_ID}.")
+    except Exception as e:
+        log.error(f"Failed to sync commands: {e}")
 
 
 async def load_extensions():
     for ext in EXTENSIONS:
-        await bot.load_extension(ext)
-        log.info(f"Loaded extension: {ext}")
+        try:
+            await bot.load_extension(ext)
+            log.info(f"Loaded extension: {ext}")
+        except Exception as e:
+            log.error(f"Failed to load {ext}: {e}")
 
 
 # --- Minimal health-check server (Render + UptimeRobot) -----------------------
